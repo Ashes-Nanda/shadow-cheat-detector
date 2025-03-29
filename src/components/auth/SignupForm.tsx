@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 export function SignupForm() {
   const [email, setEmail] = useState("");
@@ -17,6 +18,7 @@ export function SignupForm() {
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,24 +34,24 @@ export function SignupForm() {
     
     setIsLoading(true);
     
-    // Simulate signup - replace with actual auth in Phase 2
-    setTimeout(() => {
+    try {
+      await signup(email, password, orgName);
+      toast({
+        title: "Account created",
+        description: "Welcome to ShadowSight dashboard",
+        variant: "default",
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Signup error:", error);
+      toast({
+        title: "Signup failed",
+        description: "An error occurred during signup. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      if (email && password && orgName) {
-        toast({
-          title: "Account created",
-          description: "Welcome to ShadowSight dashboard",
-          variant: "default",
-        });
-        navigate("/dashboard");
-      } else {
-        toast({
-          title: "Signup failed",
-          description: "Please fill out all required fields",
-          variant: "destructive",
-        });
-      }
-    }, 1500);
+    }
   };
 
   return (

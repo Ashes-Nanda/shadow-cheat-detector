@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -15,29 +16,30 @@ export function LoginForm() {
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate login - replace with actual auth in Phase 2
-    setTimeout(() => {
+    try {
+      await login(email, password);
+      toast({
+        title: "Successfully logged in",
+        description: "Welcome to ShadowSight dashboard",
+        variant: "default",
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: "Invalid email or password",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      if (email && password) {
-        toast({
-          title: "Successfully logged in",
-          description: "Welcome to ShadowSight dashboard",
-          variant: "default",
-        });
-        navigate("/dashboard");
-      } else {
-        toast({
-          title: "Login failed",
-          description: "Please enter valid credentials",
-          variant: "destructive",
-        });
-      }
-    }, 1500);
+    }
   };
 
   return (
