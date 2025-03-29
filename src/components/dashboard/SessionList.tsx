@@ -1,6 +1,8 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { sessionService } from "@/services/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -12,78 +14,44 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, AlertTriangle, Filter, ArrowUpDown } from "lucide-react";
+import { Search, AlertTriangle, Filter, ArrowUpDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Mock data for demonstration
-const sessions = [
-  {
-    id: "s-123456",
-    candidate: "Anonymous Candidate #1",
-    platform: "HackerRank",
-    date: "2023-06-15",
-    trust_score: 94,
-    flags: 0,
-    severity: "low"
-  },
-  {
-    id: "s-123457",
-    candidate: "Anonymous Candidate #2",
-    platform: "CoderPad",
-    date: "2023-06-14",
-    trust_score: 72,
-    flags: 2,
-    severity: "medium"
-  },
-  {
-    id: "s-123458",
-    candidate: "Anonymous Candidate #3",
-    platform: "HackerRank",
-    date: "2023-06-13",
-    trust_score: 45,
-    flags: 4,
-    severity: "high"
-  },
-  {
-    id: "s-123459",
-    candidate: "Anonymous Candidate #4",
-    platform: "CoderPad",
-    date: "2023-06-12",
-    trust_score: 98,
-    flags: 0,
-    severity: "low"
-  },
-  {
-    id: "s-123460",
-    candidate: "Anonymous Candidate #5",
-    platform: "HackerRank",
-    date: "2023-06-10",
-    trust_score: 32,
-    flags: 8,
-    severity: "critical"
-  },
-  {
-    id: "s-123461",
-    candidate: "Anonymous Candidate #6",
-    platform: "CoderPad",
-    date: "2023-06-09",
-    trust_score: 86,
-    flags: 1,
-    severity: "low"
-  },
-  {
-    id: "s-123462",
-    candidate: "Anonymous Candidate #7",
-    platform: "HackerRank",
-    date: "2023-06-07",
-    trust_score: 63,
-    flags: 3,
-    severity: "medium"
-  }
-];
+// Session interface
+interface Session {
+  id: string;
+  candidateName: string;
+  platform: string;
+  timestamp: any; // Firebase timestamp
+  trustScore: number;
+  flags: number;
+  severity: string;
+  position: string;
+}
 
 export function SessionList() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { currentUser } = useAuth();
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      if (!currentUser) return;
+      
+      try {
+        setLoading(true);
+        const fetchedSessions = await sessionService.getSessions(currentUser.uid);
+        setSessions(fetchedSessions as Session[]);
+      } catch (error) {
+        console.error("Error fetching sessions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, [currentUser]);
 
   const getSeverityClass = (severity: string) => {
     switch (severity) {
@@ -99,6 +67,25 @@ export function SessionList() {
         return "bg-muted text-muted-foreground";
     }
   };
+
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return "N/A";
+    
+    try {
+      // If it's a Firebase timestamp, convert to JS Date
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Invalid date";
+    }
+  };
+
+  const filteredSessions = sessions.filter(session => 
+    session.candidateName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    session.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    session.platform?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <Card className="glass-card mt-6">
@@ -123,41 +110,44 @@ export function SessionList() {
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader className="bg-shadow-dark">
-            <TableRow>
-              <TableHead className="w-[100px]">Session ID</TableHead>
-              <TableHead>Candidate</TableHead>
-              <TableHead>Platform</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">
-                <div className="flex items-center justify-end">
-                  Trust Score
-                  <ArrowUpDown className="ml-2 h-3 w-3" />
-                </div>
-              </TableHead>
-              <TableHead>Risk Level</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sessions
-              .filter(session => 
-                session.candidate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                session.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                session.platform.toLowerCase().includes(searchQuery.toLowerCase())
-              )
-              .map((session) => (
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-highlight-purple" />
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No sessions found. Create your first session to get started.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader className="bg-shadow-dark">
+              <TableRow>
+                <TableHead className="w-[100px]">Session ID</TableHead>
+                <TableHead>Candidate</TableHead>
+                <TableHead>Platform</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">
+                  <div className="flex items-center justify-end">
+                    Trust Score
+                    <ArrowUpDown className="ml-2 h-3 w-3" />
+                  </div>
+                </TableHead>
+                <TableHead>Risk Level</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredSessions.map((session) => (
                 <TableRow key={session.id} className="hover:bg-shadow-light/40">
                   <TableCell className="font-mono text-xs">{session.id}</TableCell>
                   <TableCell>
                     <Link to={`/sessions/${session.id}`} className="hover:text-highlight-purple">
-                      {session.candidate}
+                      {session.candidateName}
                     </Link>
                   </TableCell>
                   <TableCell>{session.platform}</TableCell>
-                  <TableCell>{session.date}</TableCell>
+                  <TableCell>{formatDate(session.timestamp)}</TableCell>
                   <TableCell className="text-right font-medium">
-                    {session.trust_score}
+                    {session.trustScore}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center">
@@ -171,8 +161,9 @@ export function SessionList() {
                   </TableCell>
                 </TableRow>
               ))}
-          </TableBody>
-        </Table>
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

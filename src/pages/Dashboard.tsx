@@ -1,12 +1,15 @@
 
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import { SessionList } from "@/components/dashboard/SessionList";
-import { TrustScoreCard } from "@/components/dashboard/TrustScoreCard";
+import { CreateSessionModal } from "@/components/dashboard/CreateSessionModal";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Plus } from "lucide-react";
 
 const Dashboard = () => {
+  const [createSessionOpen, setCreateSessionOpen] = useState(false);
+
   return (
     <DashboardLayout>
       <div className="flex flex-col md:flex-row items-center justify-between mb-6">
@@ -19,7 +22,10 @@ const Dashboard = () => {
             <FileText className="h-4 w-4" />
             Export Report
           </Button>
-          <Button className="bg-highlight-purple hover:bg-highlight-purple/90 flex gap-2">
+          <Button 
+            className="bg-highlight-purple hover:bg-highlight-purple/90 flex gap-2"
+            onClick={() => setCreateSessionOpen(true)}
+          >
             <Plus className="h-4 w-4" />
             New Session
           </Button>
@@ -28,6 +34,11 @@ const Dashboard = () => {
 
       <StatsGrid />
       <SessionList />
+      
+      <CreateSessionModal 
+        open={createSessionOpen} 
+        onOpenChange={setCreateSessionOpen} 
+      />
     </DashboardLayout>
   );
 };
