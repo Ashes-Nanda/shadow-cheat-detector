@@ -41,8 +41,7 @@ export function TrustScoreCard({ score }: TrustScoreCardProps) {
         <Progress 
           value={score} 
           max={100} 
-          className="h-2 mt-2 bg-shadow-dark" 
-          indicatorClassName={getScoreColor(score)} 
+          className={`h-2 mt-2 bg-shadow-dark ${getScoreColor(score)}`} 
         />
       </CardContent>
     </Card>
